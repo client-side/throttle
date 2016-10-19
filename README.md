@@ -28,11 +28,11 @@ void submitPacket(byte[] packet) {
 }
 ```
 
-###Changes From [Guava RateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java)
+###Changes From Guava Rate Limiter
 * Nanosecond instead of microsecond accuracy.
 * Factoring out an interface class, [Throttle](src/main/java/com/fabahaba/throttle/Throttle.java#L83), from the base abstract class.
-* Remove the need for any non-core-Java classes outside of the original RateLimiter and SmoothRateLimiter classes.
-* Remove the need for a SleepingStopwatch or similar class instance.
+* Remove the need for any non-core-Java classes outside of the original [RateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java) and [SmoothRateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/SmoothRateLimiter.java) classes.
+* Remove the need for a [SleepingStopwatch](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java#L395) or similar class instance.
 * Use of volatile variables to prevent stale reads under concurrent access.
 
 ###Dependency Management
