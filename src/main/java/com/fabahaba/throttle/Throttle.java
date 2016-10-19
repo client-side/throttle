@@ -62,23 +62,21 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>Note: {@code Throttle} does not provide fairness guarantees.
  *
- * @author Dimitris Andreou - Original author.
- * @author James P Edwards - Throttle project derivations, see @implNote.
- * @apiNote Dimitris Andreou is the original author of the RateLimiter class from the Google Guava
- * project that this interface derives from.
- * @implNote Dimitris Andreou is the original author of the RateLimiter class from the Google Guava
- * project that implementations of this interface derive from.  Derivations include:
+ * <p>Note: Dimitris Andreou is the original author of the RateLimiter class from the Google Guava
+ * project that implementations of this interface derive from.
  *
- * <ul> <li>Nanosecond accuracy instead of microsecond accuracy.</li>
- *
+ * <p>Derivations include:
+ * <ul>
+ * <li>Nanosecond accuracy instead of microsecond accuracy.</li>
  * <li>Factoring out an interface class (Throttle.java) from the base abstract class.</li>
- *
  * <li>Remove the need for any non-core-Java class outside of the original RateLimiter and
  * SmoothRateLimiter classes.</li>
- *
  * <li>Remove the need for a SleepingStopwatch or similar class instance.</li>
+ * <li>Use volatile variables to prevent stale reads under concurrent access.</li>
+ * </ul>
  *
- * <li>Use volatile variables to prevent stale reads under concurrent access.</li></ul>
+ * @author Dimitris Andreou - Original author.
+ * @author James P Edwards - Throttle project derivations.
  */
 public interface Throttle {
 
@@ -96,6 +94,7 @@ public interface Throttle {
    *
    * @param permitsPerSecond the rate of the returned {@code Throttle}, measured in how many permits
    *                         become available per second
+   * @return a new throttle instance
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
    */
   static Throttle create(final double permitsPerSecond) {
@@ -123,6 +122,7 @@ public interface Throttle {
    * @param warmupPeriod     the duration of the period where the {@code Throttle} ramps up its
    *                         rate, before reaching its stable (maximum) rate
    * @param unit             the time unit of the warmupPeriod argument
+   * @return a new throttle instance
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero or {@code
    *                                  warmupPeriod} is negative
    */
