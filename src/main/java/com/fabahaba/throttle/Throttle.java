@@ -161,10 +161,12 @@ public interface Throttle {
   void setRate(final double permitsPerSecond);
 
   /**
-   * Returns the stable rate (as {@code permits per seconds}) with which this {@code Throttle}
+   * Returns the stable rate as permits per second with which this {@code Throttle}
    * is configured with. The initial value of this is the same as the {@code permitsPerSecond}
    * argument passed in the factory method that produced this {@code Throttle}, and it is only
    * updated after invocations to {@linkplain #setRate}.
+   *
+   * @return the current stable rate as permits per second
    */
   double getRate();
 
