@@ -1,0 +1,104 @@
+plugins {
+  id 'java'
+  id 'pl.allegro.tech.build.axion-release' version '1.4.1'
+  id 'maven-publish'
+  id 'com.jfrog.bintray' version '1.7.2'
+  id 'findbugs'
+}
+
+scmVersion {
+  tag {
+    prefix = project.name
+  }
+
+  repository {
+    customUsername = "$System.env.AXION_RELEASE_GITHUB_TOKEN"
+    customPassword = ""
+    pushTagsOnly = true
+  }
+}
+
+project.group = 'com.fabahaba'
+project.version = scmVersion.version
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+  maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
+  jcenter()
+}
+
+dependencies {
+  testCompile 'junit:junit:+'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  from sourceSets.main.allSource
+  classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  from javadoc.destinationDir
+  classifier 'javadoc'
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+
+      artifact sourcesJar
+      artifact javadocJar
+    }
+  }
+}
+
+artifacts {
+  archives sourcesJar
+  archives javadocJar
+}
+
+bintray {
+  user = "$System.env.BINTRAY_USER"
+  key = "$System.env.BINTRAY_API_KEY"
+
+  publications = ['mavenJava']
+
+  pkg {
+    repo = 'libs'
+    name = project.name
+    desc = 'Java Concurrent Rate Limiter'
+    websiteUrl = 'https://github.com/jamespedwards42/' + project.name
+    vcsUrl = 'https://github.com/jamespedwards42/' + project.name
+    issueTrackerUrl = 'https://github.com/jamespedwards42/' + project.name + '/issues'
+    licenses = ["Apache-2.0"]
+    publish = true
+    version {
+      name = project.version
+      //desc =  ''
+      vcsTag = scmVersion.tag.prefix + '-' + project.version
+      gpg {
+        sign = true
+        passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
+      }
+    }
+  }
+}
+
+bintrayUpload.onlyIf { !project.version.endsWith('SNAPSHOT') }
+
+findbugs {
+  toolVersion = "+"
+  reportsDir = file("$project.buildDir/findbugsReports")
+  effort = "max"
+  reportLevel = "medium"
+  ignoreFailures = false
+}
+
+tasks.withType(FindBugs) {
+  reports {
+    xml.enabled = false
+    html.enabled = true
+  }
+}
