@@ -1,15 +1,17 @@
 #throttle [![Build Status](https://travis-ci.org/jamespedwards42/throttle.svg)](https://travis-ci.org/jamespedwards42/throttle) [![JCenter](https://api.bintray.com/packages/jamespedwards42/libs/throttle/images/download.svg) ](https://bintray.com/jamespedwards42/libs/throttle/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0)
+>Provides a mechanism to limit the rate of access to a resource.
 
 ###Usage
+A throttle instance distributes permits at a desired rate, blocking if necessary until a permit is availble.
 
 ######Submit two tasks per second:
 
 ```java
-final Throttle rateLimiter = Throttle.create(2.0); // rate is "2 permits per second"
+final Throttle rateLimiter = Throttle.create(2.0); // 2 permits per second
 
 void submitTasks(List<Runnable> tasks, Executor executor) {
     for (Runnable task : tasks) {
-      throttle.acquire(); // may wait
+      throttle.acquire();
       executor.execute(task);
     }
 }
@@ -18,7 +20,7 @@ void submitTasks(List<Runnable> tasks, Executor executor) {
 ######Cap data stream to 5kb per second:
 
 ```java
-final Throttle throttle = Throttle.create(5000.0); // rate = 5000 permits per second
+final Throttle throttle = Throttle.create(5000.0); // 5000 permits per second
 
 void submitPacket(byte[] packet) {
     throttle.acquire(packet.length);
@@ -34,7 +36,6 @@ void submitPacket(byte[] packet) {
 * Use of volatile variables to prevent stale reads under concurrent access.
 
 ###Dependency Management
-####Gradle
 ```groovy
 repositories {
    jcenter()

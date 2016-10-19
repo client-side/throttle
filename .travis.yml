@@ -12,6 +12,7 @@ jdk:
 
 branches:
   only:
+    - master
     - /^throttle-.*$/
 
 before_cache:
