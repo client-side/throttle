@@ -6,7 +6,7 @@ Changes from the original include:
 2. Factoring out an interface class (Throttle.java) from the base abstract class.
 3. Remove the need for any non-core-Java classes outside of the original RateLimiter and SmoothRateLimiter classes.
 4. Remove the need for a SleepingStopwatch or similar class instance.
-4. Use of volatile variables to prevent stale reads under concurrent access.
+5. Use of volatile variables to prevent stale reads under concurrent access.
 
 Here is a copy of the original copyright also listed at the top of each derivative class.
 
