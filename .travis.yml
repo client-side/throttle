@@ -1,0 +1,29 @@
+sudo: false
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+
+language: java
+
+jdk:
+  - oraclejdk8
+
+branches:
+  only:
+    - /^throttle-.*$/
+
+before_cache:
+  - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+install: /bin/true
+
+script: ./gradlew check
+
+after_success: ./gradlew bintrayUpload
