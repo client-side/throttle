@@ -140,7 +140,7 @@ abstract class NanoThrottle implements Throttle {
  * we would only increase it for arrivals _later_ than the expected one second.
  */
 
-  private static final double ONE_SECOND_NANOS = 1_000_000_000.0;
+  static final double ONE_SECOND_NANOS = 1_000_000_000.0;
 
   private final long nanoStart;
   volatile double storedPermits;
@@ -216,7 +216,7 @@ abstract class NanoThrottle implements Throttle {
    *
    * @return time in nanoseconds to wait until the resource can be acquired, never negative
    */
-  private long reserve(final int permits) {
+  long reserve(final int permits) {
     checkPermits(permits);
     synchronized (mutex) {
       return reserveAndGetWaitLength(permits, System.nanoTime() - nanoStart);
@@ -300,7 +300,7 @@ abstract class NanoThrottle implements Throttle {
     return returnValue;
   }
 
-  private static void sleepNanosUninterruptibly(long sleepNanos) {
+  static void sleepNanosUninterruptibly(long sleepNanos) {
     final long end = System.nanoTime() + sleepNanos;
     try {
       NANOSECONDS.sleep(sleepNanos);
@@ -333,7 +333,7 @@ abstract class NanoThrottle implements Throttle {
    * Returns the sum of {@code val1} and {@code val2} unless it would overflow or underflow in which case
    * {@code Long.MAX_VALUE} or {@code Long.MIN_VALUE} is returned, respectively.
    */
-  private static long saturatedAdd(final long val1, final long val2) {
+  static long saturatedAdd(final long val1, final long val2) {
     final long naiveSum = val1 + val2;
     if ((val1 ^ val2) < 0 || (val1 ^ naiveSum) >= 0) {
       return naiveSum;
