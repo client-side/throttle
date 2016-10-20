@@ -4,6 +4,7 @@ plugins {
   id 'maven-publish'
   id 'com.jfrog.bintray' version '1.7.2'
   id 'findbugs'
+  id 'checkstyle'
 }
 
 scmVersion {
@@ -22,7 +23,6 @@ project.group = 'com.fabahaba'
 project.version = scmVersion.version
 
 sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
   maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
@@ -76,7 +76,6 @@ bintray {
     publish = true
     version {
       name = project.version
-      //desc =  ''
       vcsTag = scmVersion.tag.prefix + '-' + project.version
       gpg {
         sign = true
@@ -101,4 +100,12 @@ tasks.withType(FindBugs) {
     xml.enabled = false
     html.enabled = true
   }
+}
+
+checkstyle {
+  config = resources.text.fromFile("checkstyle/google-checks.xml")
+  configProperties = [samedir: "${projectDir}/checkstyle"]
+  reportsDir = file("$project.buildDir/checkstyleReports")
+  toolVersion = "+"
+  ignoreFailures = false
 }

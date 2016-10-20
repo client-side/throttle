@@ -11,6 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.fabahaba.throttle;
 
 import java.util.concurrent.TimeUnit;
@@ -329,12 +330,12 @@ abstract class NanoThrottle implements Throttle {
   }
 
   /**
-   * Returns the sum of {@code a} and {@code b} unless it would overflow or underflow in which case
+   * Returns the sum of {@code val1} and {@code val2} unless it would overflow or underflow in which case
    * {@code Long.MAX_VALUE} or {@code Long.MIN_VALUE} is returned, respectively.
    */
-  private static long saturatedAdd(final long a, final long b) {
-    final long naiveSum = a + b;
-    if ((a ^ b) < 0 | (a ^ naiveSum) >= 0) {
+  private static long saturatedAdd(final long val1, final long val2) {
+    final long naiveSum = val1 + val2;
+    if ((val1 ^ val2) < 0 | (val1 ^ naiveSum) >= 0) {
       return naiveSum;
     }
     return Long.MAX_VALUE + ((naiveSum >>> (Long.SIZE - 1)) ^ 1);
