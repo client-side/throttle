@@ -335,7 +335,7 @@ abstract class NanoThrottle implements Throttle {
    */
   private static long saturatedAdd(final long val1, final long val2) {
     final long naiveSum = val1 + val2;
-    if ((val1 ^ val2) < 0 | (val1 ^ naiveSum) >= 0) {
+    if ((val1 ^ val2) < 0 || (val1 ^ naiveSum) >= 0) {
       return naiveSum;
     }
     return Long.MAX_VALUE + ((naiveSum >>> (Long.SIZE - 1)) ^ 1);
