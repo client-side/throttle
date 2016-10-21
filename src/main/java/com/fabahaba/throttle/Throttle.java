@@ -99,46 +99,7 @@ public interface Throttle {
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
    */
   static Throttle create(final double permitsPerSecond) {
-    return new NanoThrottle.Burst(permitsPerSecond, 1.0);
-  }
-
-  /**
-   * Creates a {@code Throttle} with the specified stable throughput, given as
-   * "permits per second" (commonly referred to as <i>QPS</i>, queries per second), and a <i>warmup
-   * period</i>, during which the {@code Throttle} smoothly ramps up its rate, until it reaches
-   * its maximum rate at the end of the period (as long as there are enough requests to saturate
-   * it). Similarly, if the {@code Throttle} is left <i>unused</i> for a duration of
-   * {@code warmupPeriod}, it will gradually return to its "cold" state, i.e. it will go through the
-   * same warming up process as when it was first created.
-   *
-   * <p>The returned {@code Throttle} is intended for cases where the resource that actually
-   * fulfills the requests (e.g., a remote server) needs "warmup" time, rather than being
-   * immediately accessed at the stable (maximum) rate.
-   *
-   * <p>The returned {@code Throttle} starts in a "cold" state (i.e. the warmup period will
-   * follow), and if it is left unused for long enough, it will return to that state.
-   *
-   * @param permitsPerSecond the rate of the returned {@code Throttle}, measured in how many permits
-   *                         become available per second
-   * @param warmupPeriod     the duration of the period where the {@code Throttle} ramps up its
-   *                         rate, before reaching its stable (maximum) rate
-   * @param unit             the time unit of the warmupPeriod argument
-   * @return a new throttle instance
-   * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero or {@code
-   *                                  warmupPeriod} is negative
-   */
-  static Throttle create(final double permitsPerSecond, final long warmupPeriod,
-      final TimeUnit unit) {
-    return create(permitsPerSecond, warmupPeriod, unit, 3.0);
-  }
-
-  static Throttle create(final double permitsPerSecond, final long warmupPeriod,
-      final TimeUnit unit, final double coldFactor) {
-    if (warmupPeriod <= 0) {
-      throw new IllegalArgumentException(String
-          .format("warmupPeriod must be greater than zero: %s", warmupPeriod));
-    }
-    return new NanoThrottle.Warming(permitsPerSecond, unit.toNanos(warmupPeriod), coldFactor);
+    return new NanoThrottle.GoldFish(permitsPerSecond, 1.0);
   }
 
   /**

@@ -31,7 +31,6 @@ repositories {
 
 dependencies {
   testCompile 'junit:junit:+'
-
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
