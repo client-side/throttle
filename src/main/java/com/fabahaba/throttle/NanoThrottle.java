@@ -150,7 +150,7 @@ abstract class NanoThrottle implements Throttle {
   private final Object mutex = new Object();
 
   private NanoThrottle(final double permitsPerSecond) {
-    if (permitsPerSecond <= 0.0 || Double.isNaN(permitsPerSecond)) {
+    if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
       throw new IllegalArgumentException("rate must be positive");
     }
     this.nanoStart = System.nanoTime();
@@ -162,7 +162,7 @@ abstract class NanoThrottle implements Throttle {
    */
   @Override
   public final void setRate(final double permitsPerSecond) {
-    if (permitsPerSecond <= 0.0 || Double.isNaN(permitsPerSecond)) {
+    if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
       throw new IllegalArgumentException("rate must be positive");
     }
     synchronized (mutex) {
@@ -190,14 +190,6 @@ abstract class NanoThrottle implements Throttle {
 
   private double doGetRate() {
     return ONE_SECOND_NANOS / stableIntervalNanos;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public double acquire() {
-    return acquire(1);
   }
 
   /**
@@ -386,7 +378,7 @@ abstract class NanoThrottle implements Throttle {
         storedPermits = 0.0;
         return;
       }
-      if (oldMaxPermits == Double.POSITIVE_INFINITY) {
+      if (!Double.isFinite(oldMaxPermits)) {
         storedPermits = maxPermits;
         return;
       }

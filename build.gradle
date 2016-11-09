@@ -13,7 +13,7 @@ scmVersion {
   }
 
   repository {
-    customUsername = "$System.env.AXION_RELEASE_GITHUB_TOKEN"
+    customUsername = AXION_RELEASE_GITHUB_TOKEN
     customPassword = ""
     pushTagsOnly = true
   }

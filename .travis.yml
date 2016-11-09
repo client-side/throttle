@@ -23,7 +23,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-install: /bin/true
+install: ./gradlew -version
 
 script: ./gradlew check
 

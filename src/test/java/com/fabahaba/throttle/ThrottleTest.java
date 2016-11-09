@@ -16,12 +16,17 @@
 
 package com.fabahaba.throttle;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.fabahaba.throttle.NanoThrottle.ONE_SECOND_NANOS;
 import static com.fabahaba.throttle.NanoThrottle.sleepNanosUninterruptibly;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertEquals;
@@ -29,7 +34,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * The following tests were adapted directly from com.google.common.util.concurrent.RateLimiterTest
+ * The following tests were adapted directly from com.google.common.util.concurrent.RateLimiterTest.
+ * Changes were made to test the non-burst behavior of Throttle, to ensure the rate limit is not
+ * exceeded over the period of one second.
  *
  * @author Dimitris Andreou - Original RateLimiterTest author
  * @author James P Edwards
@@ -38,6 +45,11 @@ public class ThrottleTest {
 
   private static final double FIRST_DELTA = 0.007; // 7ms
   private static final double SECOND_DELTA = 0.006; // 6ms
+
+  @BeforeClass
+  public static void warmup() {
+    Throttle.create(100.0);
+  }
 
   @Test
   public void testReserve() {
@@ -63,13 +75,13 @@ public class ThrottleTest {
 
   @Test
   public void testAcquireWeights() {
-    final Throttle throttle = Throttle.create(10.0);
+    final Throttle throttle = Throttle.create(20.0);
     assertEquals(0.00, throttle.acquire(1), FIRST_DELTA);
-    assertEquals(0.10, throttle.acquire(1), SECOND_DELTA);
-    assertEquals(0.10, throttle.acquire(2), SECOND_DELTA);
-    assertEquals(0.20, throttle.acquire(4), SECOND_DELTA);
-    assertEquals(0.40, throttle.acquire(8), SECOND_DELTA);
-    assertEquals(0.80, throttle.acquire(1), SECOND_DELTA);
+    assertEquals(0.05, throttle.acquire(1), SECOND_DELTA);
+    assertEquals(0.05, throttle.acquire(2), SECOND_DELTA);
+    assertEquals(0.10, throttle.acquire(4), SECOND_DELTA);
+    assertEquals(0.20, throttle.acquire(8), SECOND_DELTA);
+    assertEquals(0.40, throttle.acquire(1), SECOND_DELTA);
   }
 
   @Test
@@ -220,5 +232,73 @@ public class ThrottleTest {
       fail();
     } catch (IllegalArgumentException expected) {
     }
+  }
+
+  @Test
+  public void testIllegalConstructorArgs() {
+    try {
+      Throttle.create(Double.POSITIVE_INFINITY);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+      Throttle.create(Double.NEGATIVE_INFINITY);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+      Throttle.create(Double.NaN);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+      Throttle.create(-.0000001);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+  }
+
+  @Test
+  public void testMax() {
+    final Throttle throttle = Throttle.create(Double.MAX_VALUE);
+
+    assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE / 4), 0.0);
+    assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE / 2), 0.0);
+    assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE), 0.0);
+
+    throttle.setRate(20.0);
+    assertEquals(0.0, throttle.acquire(), 0.0);
+    assertEquals(0.05, throttle.acquire(), SECOND_DELTA);
+
+    throttle.setRate(Double.MAX_VALUE);
+    assertEquals(0.05, throttle.acquire(), FIRST_DELTA);
+    assertEquals(0.0, throttle.acquire(), 0.0);
+    assertEquals(0.0, throttle.acquire(), 0.0);
+  }
+
+  @Test
+  public void testWeNeverGetABurstMoreThanOneSec() {
+    final Throttle throttle = Throttle.create(100.0);
+    final int[] rates = {10000, 100, 1000000, 1000, 100};
+    for (final int oneSecWorthOfWork : rates) {
+      throttle.setRate(oneSecWorthOfWork);
+      final int oneHundredMillisWorthOfWork = (int) (oneSecWorthOfWork / 10.0);
+      long durationMillis = measureTotalTimeMillis(throttle, oneHundredMillisWorthOfWork);
+      assertEquals(100.0, durationMillis, 15.0);
+      durationMillis = measureTotalTimeMillis(throttle, oneHundredMillisWorthOfWork);
+      assertEquals(100.0, durationMillis, 15.0);
+    }
+  }
+
+  private static long measureTotalTimeMillis(final Throttle throttle, int permits) {
+    final Random random = ThreadLocalRandom.current();
+    final long startTime = System.nanoTime();
+    while (permits > 0) {
+      final int nextPermitsToAcquire = Math.max(1, random.nextInt(permits));
+      permits -= nextPermitsToAcquire;
+      throttle.acquire(nextPermitsToAcquire);
+    }
+    throttle.acquire(1); // to repay for any pending debt
+    return NANOSECONDS.toMillis(System.nanoTime() - startTime);
   }
 }

@@ -140,7 +140,9 @@ public interface Throttle {
    *
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    */
-  double acquire();
+  default double acquire() {
+    return acquire(1);
+  }
 
   /**
    * Acquires the given number of permits from this {@code Throttle}, blocking until the request
