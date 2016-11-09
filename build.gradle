@@ -13,7 +13,7 @@ scmVersion {
   }
 
   repository {
-    customUsername = AXION_RELEASE_GITHUB_TOKEN
+    customUsername = hasProperty('AXION_RELEASE_GITHUB_TOKEN') ? AXION_RELEASE_GITHUB_TOKEN : ""
     customPassword = ""
     pushTagsOnly = true
   }
