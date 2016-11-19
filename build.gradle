@@ -14,7 +14,7 @@ scmVersion {
   }
 
   repository {
-    if (!project.hasProperty("AXION_RELEASE_GITHUB_TOKEN")) {
+    if (project.hasProperty("AXION_RELEASE_GITHUB_TOKEN")) {
       customUsername = "$AXION_RELEASE_GITHUB_TOKEN"
     }
     pushTagsOnly = true
