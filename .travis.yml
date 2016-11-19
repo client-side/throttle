@@ -27,4 +27,4 @@ install: ./gradlew -version
 
 script: ./gradlew check
 
-after_success: ./gradlew bintrayUpload
+after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then ./gradlew bintrayUpload; else ./gradlew jacocoTestReport; bash <(curl -s https://codecov.io/bash); fi

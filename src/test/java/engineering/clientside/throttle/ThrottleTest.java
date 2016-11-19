@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.fabahaba.throttle;
+package engineering.clientside.throttle;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,8 +22,8 @@ import org.junit.Test;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.fabahaba.throttle.NanoThrottle.ONE_SECOND_NANOS;
-import static com.fabahaba.throttle.NanoThrottle.sleepNanosUninterruptibly;
+import static engineering.clientside.throttle.NanoThrottle.ONE_SECOND_NANOS;
+import static engineering.clientside.throttle.NanoThrottle.sleepNanosUninterruptibly;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;

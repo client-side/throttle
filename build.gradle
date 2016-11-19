@@ -2,9 +2,10 @@ plugins {
   id 'java'
   id 'pl.allegro.tech.build.axion-release' version '1.4.1'
   id 'maven-publish'
-  id 'com.jfrog.bintray' version '1.7.2'
+  id 'com.jfrog.bintray' version '1.7.3'
   id 'findbugs'
   id 'checkstyle'
+  id 'jacoco'
 }
 
 scmVersion {
@@ -13,13 +14,13 @@ scmVersion {
   }
 
   repository {
-    customUsername = hasProperty('AXION_RELEASE_GITHUB_TOKEN') ? AXION_RELEASE_GITHUB_TOKEN : ""
+    customUsername = "$AXION_RELEASE_GITHUB_TOKEN"
     customPassword = ""
     pushTagsOnly = true
   }
 }
 
-project.group = 'com.fabahaba'
+project.group = 'engineering.clientside'
 project.version = scmVersion.version
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -60,18 +61,17 @@ artifacts {
 }
 
 bintray {
-  user = "$System.env.BINTRAY_USER"
-  key = "$System.env.BINTRAY_API_KEY"
-
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_API_KEY')
   publications = ['mavenJava']
-
   pkg {
-    repo = 'libs'
+    userOrg = 'client-side'
+    repo = 'clients'
     name = project.name
     desc = 'Java Concurrent Rate Limiter'
-    websiteUrl = 'https://github.com/jamespedwards42/' + project.name
-    vcsUrl = 'https://github.com/jamespedwards42/' + project.name
-    issueTrackerUrl = 'https://github.com/jamespedwards42/' + project.name + '/issues'
+    websiteUrl = 'https://github.com/client-side/' + project.name
+    vcsUrl = 'https://github.com/client-side/' + project.name
+    issueTrackerUrl = 'https://github.com/client-side/' + project.name + '/issues'
     licenses = ["Apache-2.0"]
     publish = true
     version {
@@ -79,7 +79,7 @@ bintray {
       vcsTag = scmVersion.tag.prefix + '-' + project.version
       gpg {
         sign = true
-        passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
+        passphrase = System.getenv('BINTRAY_GPG_PASSPHRASE')
       }
     }
   }
@@ -108,4 +108,15 @@ checkstyle {
   reportsDir = file("$project.buildDir/checkstyleReports")
   toolVersion = "+"
   ignoreFailures = false
+}
+
+jacoco {
+  toolVersion = "+"
+}
+
+jacocoTestReport {
+  reports {
+    xml.enabled = true
+    html.enabled = false
+  }
 }

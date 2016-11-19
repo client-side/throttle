@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.fabahaba.throttle;
+package engineering.clientside.throttle;
 
 import org.junit.Test;
 

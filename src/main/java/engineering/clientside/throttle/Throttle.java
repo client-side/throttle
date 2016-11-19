@@ -12,7 +12,7 @@
  * the License.
  */
 
-package com.fabahaba.throttle;
+package engineering.clientside.throttle;
 
 import java.util.concurrent.TimeUnit;
 

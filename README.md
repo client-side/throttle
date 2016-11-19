@@ -1,4 +1,4 @@
-#throttle [![Build Status](https://travis-ci.org/jamespedwards42/throttle.svg)](https://travis-ci.org/jamespedwards42/throttle) [![JCenter](https://api.bintray.com/packages/jamespedwards42/libs/throttle/images/download.svg) ](https://bintray.com/jamespedwards42/libs/throttle/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0)
+#throttle [![Build Status](https://travis-ci.org/client-side/throttle.svg)](https://travis-ci.org/client-side/throttle) [![JCenter](https://api.bintray.com/packages/client-side/clients/throttle/images/download.svg) ](https://bintray.com/client-side/libs/throttle/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0)
 >Provides a mechanism to limit the rate of access to a resource.
 
 ###Usage
@@ -11,10 +11,10 @@ A throttle instance distributes permits at a desired rate, blocking if necessary
 final Throttle rateLimiter = Throttle.create(2.0); // 2 permits per second
 
 void submitTasks(List<Runnable> tasks, Executor executor) {
-    for (Runnable task : tasks) {
-      throttle.acquire();
-      executor.execute(task);
-    }
+  for (Runnable task : tasks) {
+    throttle.acquire();
+    executor.execute(task);
+  }
 }
 ```
 
@@ -24,14 +24,14 @@ void submitTasks(List<Runnable> tasks, Executor executor) {
 final Throttle throttle = Throttle.create(5000.0); // 5000 permits per second
 
 void submitPacket(byte[] packet) {
-    throttle.acquire(packet.length);
-    networkService.send(packet);
+  throttle.acquire(packet.length);
+  networkService.send(packet);
 }
 ```
 
 ###Changes From Guava Rate Limiter
 * Nanosecond instead of microsecond accuracy.
-* Factoring out an interface class, [Throttle](src/main/java/com/fabahaba/throttle/Throttle.java#L81), from the base abstract class.
+* Factoring out an interface class, [Throttle](src/main/java/engineering/clientside/throttle/Throttle.java#L81), from the base abstract class.
 * Remove the need for any non-core-Java classes outside of the original [RateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java) and [SmoothRateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/SmoothRateLimiter.java) classes.
 * Remove the need for a [SleepingStopwatch](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java#L395) or similar class instance.
 * Use of volatile variables to prevent stale reads under concurrent access.
@@ -44,6 +44,6 @@ repositories {
 }
 
 dependencies {
-   compile 'com.fabahaba:throttle:+'
+   compile 'engineering.clientside:throttle:+'
 }
 ```
