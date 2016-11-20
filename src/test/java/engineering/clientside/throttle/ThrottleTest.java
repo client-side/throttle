@@ -20,6 +20,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -273,31 +274,37 @@ public class ThrottleTest {
   @Test
   public void testInterruptUnchecked() throws InterruptedException {
     final Throttle throttle = Throttle.create(1);
-    throttle.acquireUnchecked(100_000);
+    throttle.acquireUnchecked(10);
+    final CompletableFuture<Throwable> futureEx = new CompletableFuture<>();
 
     Thread thread = new Thread(() -> {
       try {
         throttle.acquireUnchecked();
+        futureEx.complete(null);
       } catch (CompletionException ex) {
-        assertEquals(InterruptedException.class, ex.getCause().getClass());
+        futureEx.complete(ex.getCause());
       }
     });
     thread.start();
     thread.interrupt();
     thread.join();
     assertFalse(throttle.tryAcquire());
+    assertEquals(InterruptedException.class, futureEx.join().getClass());
 
+    final CompletableFuture<Throwable> futureEx2 = new CompletableFuture<>();
     thread = new Thread(() -> {
       try {
-        throttle.tryAcquireUnchecked(60, SECONDS);
+        throttle.tryAcquireUnchecked(20, SECONDS);
+        futureEx2.complete(null);
       } catch (CompletionException ex) {
-        assertEquals(InterruptedException.class, ex.getCause().getClass());
+        futureEx2.complete(ex.getCause());
       }
     });
     thread.start();
     thread.interrupt();
     thread.join();
     assertFalse(throttle.tryAcquire());
+    assertEquals(InterruptedException.class, futureEx2.join().getClass());
   }
 
   @Test
