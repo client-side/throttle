@@ -14,6 +14,7 @@
 
 package engineering.clientside.throttle;
 
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -140,8 +141,22 @@ public interface Throttle {
    *
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    */
-  default double acquire() {
+  default double acquire() throws InterruptedException {
     return acquire(1);
+  }
+
+  /**
+   * Acquires a single permit from this {@code Throttle}, blocking until the request can be
+   * granted. Tells the amount of time slept, if any.
+   *
+   * <p>This method is equivalent to {@code acquire(1)}.
+   *
+   * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
+   * @throws CompletionException if this Thread is interrupted.  The cause is set to the caught
+   *                             InterruptedException and this Thread is re-interrupted
+   */
+  default double acquireUnchecked() {
+    return acquireUnchecked(1);
   }
 
   /**
@@ -152,7 +167,26 @@ public interface Throttle {
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
    */
-  double acquire(final int permits);
+  double acquire(final int permits) throws InterruptedException;
+
+  /**
+   * Acquires the given number of permits from this {@code Throttle}, blocking until the request
+   * can be granted. Tells the amount of time slept, if any.
+   *
+   * @param permits the number of permits to acquire
+   * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
+   * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   * @throws CompletionException      if this Thread is interrupted.  The cause is set to the caught
+   *                                  InterruptedException and this Thread is re-interrupted
+   */
+  default double acquireUnchecked(final int permits) {
+    try {
+      return acquire(permits);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new CompletionException(e);
+    }
+  }
 
   /**
    * Acquires a permit from this {@code Throttle} if it can be obtained without exceeding the
@@ -166,7 +200,13 @@ public interface Throttle {
    * @return {@code true} if the permit was acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
    */
-  boolean tryAcquire(final long timeout, final TimeUnit unit);
+  default boolean tryAcquire(final long timeout, final TimeUnit unit) throws InterruptedException {
+    return tryAcquire(1, timeout, unit);
+  }
+
+  default boolean tryAcquireUnchecked(final long timeout, final TimeUnit unit) {
+    return tryAcquireUnchecked(1, timeout, unit);
+  }
 
   /**
    * Acquires permits from this {@link Throttle} if it can be acquired immediately without
@@ -188,7 +228,9 @@ public interface Throttle {
    *
    * @return {@code true} if the permit was acquired, {@code false} otherwise
    */
-  boolean tryAcquire();
+  default boolean tryAcquire() {
+    return tryAcquire(1);
+  }
 
   /**
    * Acquires the given number of permits from this {@code Throttle} if it can be obtained
@@ -201,5 +243,28 @@ public interface Throttle {
    * @return {@code true} if the permits were acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
    */
-  boolean tryAcquire(final int permits, final long timeout, final TimeUnit unit);
+  boolean tryAcquire(final int permits, final long timeout, final TimeUnit unit)
+      throws InterruptedException;
+
+  /**
+   * Acquires the given number of permits from this {@code Throttle} if it can be obtained
+   * without exceeding the specified {@code timeout}, or returns {@code false} immediately (without
+   * waiting) if the permits would not have been granted before the timeout expired.
+   *
+   * @param permits the number of permits to acquire
+   * @param timeout the maximum time to wait for the permits. Negative values are treated as zero.
+   * @param unit    the time unit of the timeout argument
+   * @return {@code true} if the permits were acquired, {@code false} otherwise
+   * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   * @throws CompletionException      if this Thread is interrupted.  The cause is set to the caught
+   *                                  InterruptedException and this Thread is re-interrupted
+   */
+  default boolean tryAcquireUnchecked(final int permits, final long timeout, final TimeUnit unit) {
+    try {
+      return tryAcquire(permits, timeout, unit);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new CompletionException(e);
+    }
+  }
 }

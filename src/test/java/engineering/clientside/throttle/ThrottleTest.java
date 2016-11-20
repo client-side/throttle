@@ -20,10 +20,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Random;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static engineering.clientside.throttle.NanoThrottle.ONE_SECOND_NANOS;
-import static engineering.clientside.throttle.NanoThrottle.sleepNanosUninterruptibly;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -52,31 +52,31 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testReserve() {
+  public void testReserve() throws InterruptedException {
     final NanoThrottle throttle = new NanoThrottle.GoldFish(5.0, 1.0);
     long sleep = throttle.reserve(1);
-    sleepNanosUninterruptibly(sleep);
+    NANOSECONDS.sleep(sleep);
     assertEquals(0.0, sleep / ONE_SECOND_NANOS, 0.0);
     sleep = throttle.reserve(1);
-    sleepNanosUninterruptibly(sleep);
+    NANOSECONDS.sleep(sleep);
     assertEquals(0.20, sleep / ONE_SECOND_NANOS, FIRST_DELTA);
     sleep = throttle.reserve(1);
-    sleepNanosUninterruptibly(sleep);
+    NANOSECONDS.sleep(sleep);
     assertEquals(0.20, sleep / ONE_SECOND_NANOS, SECOND_DELTA);
   }
 
   @Test
-  public void testAcquire() {
+  public void testAcquire() throws InterruptedException {
     final Throttle throttle = Throttle.create(5.0);
     assertEquals(0.0, throttle.acquire(), 0.0);
-    assertEquals(0.20, throttle.acquire(), FIRST_DELTA);
+    assertEquals(0.20, throttle.acquireUnchecked(), FIRST_DELTA);
     assertEquals(0.20, throttle.acquire(), SECOND_DELTA);
   }
 
   @Test
-  public void testAcquireWeights() {
+  public void testAcquireWeights() throws InterruptedException {
     final Throttle throttle = Throttle.create(20.0);
-    assertEquals(0.00, throttle.acquire(1), FIRST_DELTA);
+    assertEquals(0.00, throttle.acquireUnchecked(1), FIRST_DELTA);
     assertEquals(0.05, throttle.acquire(1), SECOND_DELTA);
     assertEquals(0.05, throttle.acquire(2), SECOND_DELTA);
     assertEquals(0.10, throttle.acquire(4), SECOND_DELTA);
@@ -114,7 +114,7 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testAcquireAndUpdate() {
+  public void testAcquireAndUpdate() throws InterruptedException {
     final Throttle throttle = Throttle.create(10.0);
     assertEquals(0.0, throttle.acquire(1), 0.0);
     assertEquals(0.10, throttle.acquire(1), FIRST_DELTA);
@@ -130,8 +130,8 @@ public class ThrottleTest {
   @Test
   public void testTryAcquire_noWaitAllowed() throws InterruptedException {
     final Throttle throttle = Throttle.create(50.0);
-    assertTrue(throttle.tryAcquire(0, SECONDS));
-    assertFalse(throttle.tryAcquire(0, SECONDS));
+    assertTrue(throttle.tryAcquire());
+    assertFalse(throttle.tryAcquireUnchecked(0, SECONDS));
     assertFalse(throttle.tryAcquire(0, SECONDS));
     Thread.sleep(10);
     assertFalse(throttle.tryAcquire(0, SECONDS));
@@ -166,7 +166,7 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testImmediateTryAcquire() {
+  public void testImmediateTryAcquire() throws InterruptedException {
     final Throttle throttle = Throttle.create(1.0);
     assertTrue("Unable to acquire initial permit", throttle.tryAcquire());
     assertFalse("Capable of acquiring secondary permit", throttle.tryAcquire());
@@ -200,7 +200,7 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testAcquireParameterValidation() {
+  public void testAcquireParameterValidation() throws InterruptedException {
     final Throttle throttle = Throttle.create(999);
     try {
       throttle.acquire(0);
@@ -223,7 +223,7 @@ public class ThrottleTest {
     } catch (IllegalArgumentException expected) {
     }
     try {
-      throttle.tryAcquire(0, 1, SECONDS);
+      throttle.tryAcquireUnchecked(0, 1, SECONDS);
       fail();
     } catch (IllegalArgumentException expected) {
     }
@@ -235,7 +235,7 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testIllegalConstructorArgs() {
+  public void testIllegalConstructorArgs() throws InterruptedException {
     try {
       Throttle.create(Double.POSITIVE_INFINITY);
       fail();
@@ -256,15 +256,57 @@ public class ThrottleTest {
       fail();
     } catch (IllegalArgumentException expected) {
     }
+    try {
+      final Throttle throttle = Throttle.create(1.0);
+      throttle.setRate(Double.POSITIVE_INFINITY);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+      final Throttle throttle = Throttle.create(1.0);
+      throttle.setRate(Double.NaN);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
   }
 
   @Test
-  public void testMax() {
+  public void testInterruptUnchecked() throws InterruptedException {
+    final Throttle throttle = Throttle.create(1);
+    throttle.acquireUnchecked(100_000);
+
+    Thread thread = new Thread(() -> {
+      try {
+        throttle.acquireUnchecked();
+      } catch (CompletionException ex) {
+        assertEquals(InterruptedException.class, ex.getCause().getClass());
+      }
+    });
+    thread.start();
+    thread.interrupt();
+    thread.join();
+    assertFalse(throttle.tryAcquire());
+
+    thread = new Thread(() -> {
+      try {
+        throttle.tryAcquireUnchecked(60, SECONDS);
+      } catch (CompletionException ex) {
+        assertEquals(InterruptedException.class, ex.getCause().getClass());
+      }
+    });
+    thread.start();
+    thread.interrupt();
+    thread.join();
+    assertFalse(throttle.tryAcquire());
+  }
+
+  @Test
+  public void testMax() throws InterruptedException {
     final Throttle throttle = Throttle.create(Double.MAX_VALUE);
 
     assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE / 4), 0.0);
     assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE / 2), 0.0);
-    assertEquals(0.0, throttle.acquire(Integer.MAX_VALUE), 0.0);
+    assertEquals(0.0, throttle.acquireUnchecked(Integer.MAX_VALUE), 0.0);
 
     throttle.setRate(20.0);
     assertEquals(0.0, throttle.acquire(), 0.0);
@@ -277,7 +319,7 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testWeNeverGetABurstMoreThanOneSec() {
+  public void testWeNeverGetABurstMoreThanOneSec() throws InterruptedException {
     final Throttle throttle = Throttle.create(100.0);
     final int[] rates = {10000, 100, 1000000, 1000, 100};
     for (final int oneSecWorthOfWork : rates) {
@@ -290,7 +332,8 @@ public class ThrottleTest {
     }
   }
 
-  private static long measureTotalTimeMillis(final Throttle throttle, int permits) {
+  private static long measureTotalTimeMillis(final Throttle throttle, int permits)
+      throws InterruptedException {
     final Random random = ThreadLocalRandom.current();
     final long startTime = System.nanoTime();
     while (permits > 0) {
@@ -300,5 +343,11 @@ public class ThrottleTest {
     }
     throttle.acquire(1); // to repay for any pending debt
     return NANOSECONDS.toMillis(System.nanoTime() - startTime);
+  }
+
+  @Test
+  public void testToString() {
+    final Throttle throttle = Throttle.create(100.0);
+    assertEquals("Throttle{rate=100.0}", throttle.toString());
   }
 }
