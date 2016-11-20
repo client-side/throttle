@@ -275,8 +275,8 @@ public class ThrottleTest {
   public void testInterruptUnchecked() throws InterruptedException {
     final Throttle throttle = Throttle.create(1);
     throttle.acquireUnchecked(10);
-    final CompletableFuture<Throwable> futureEx = new CompletableFuture<>();
 
+    final CompletableFuture<Throwable> futureEx = new CompletableFuture<>();
     Thread thread = new Thread(() -> {
       try {
         throttle.acquireUnchecked();

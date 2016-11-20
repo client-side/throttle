@@ -4,13 +4,13 @@
 
 ### Usage
 
-A throttle instance distributes permits at a desired rate, blocking if necessary until a permit is available.
+A Throttle instance distributes permits at a desired rate, blocking if necessary until a permit is available.
 
 ###### Submit two tasks per second:
 
 ```java
-final Throttle rateLimiter = Throttle.create(2.0); // 2 permits per second
-
+Throttle rateLimiter = Throttle.create(2.0); // 2 permits per second
+// ...
 void submitTasks(List<Runnable> tasks, Executor executor) {
   for (Runnable task : tasks) {
     throttle.acquire();
@@ -22,8 +22,8 @@ void submitTasks(List<Runnable> tasks, Executor executor) {
 ###### Cap data stream to 5kb per second:
 
 ```java
-final Throttle throttle = Throttle.create(5000.0); // 5000 permits per second
-
+Throttle throttle = Throttle.create(5000.0); // 5000 permits per second
+// ...
 void submitPacket(byte[] packet) {
   throttle.acquire(packet.length);
   networkService.send(packet);
@@ -36,7 +36,8 @@ void submitPacket(byte[] packet) {
 * Remove the need for any non-core-Java classes outside of the original [RateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java) and [SmoothRateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/SmoothRateLimiter.java) classes.
 * Remove the need for a [SleepingStopwatch](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java#L395) or similar class instance.
 * Use of volatile variables to prevent stale reads under concurrent access.
-* Guava provides rate limiters with either a "bursty" or "warm-up" behavior. Throttle provides only a single strict rate limiter implementation that will never exceed the desired rate limit over a one second period.
+* Guava provides rate limiters with either _bursty_ or _warm-up_ behavior. Throttle provides only a single strict rate limiter implementation that will never exceed the desired rate limit over a one second period.
+* Throws checked InterruptedException's or unchecked CompletionException's with the cause set to the corresponding InterruptedException if interrupted.
 
 ### Dependency Management
 ```groovy
