@@ -140,6 +140,7 @@ public interface Throttle {
    * <p>This method is equivalent to {@code acquire(1)}.
    *
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   default double acquire() throws InterruptedException {
     return acquire(1);
@@ -166,6 +167,7 @@ public interface Throttle {
    * @param permits the number of permits to acquire
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   double acquire(final int permits) throws InterruptedException;
 
@@ -199,6 +201,7 @@ public interface Throttle {
    * @param unit    the time unit of the timeout argument
    * @return {@code true} if the permit was acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   default boolean tryAcquire(final long timeout, final TimeUnit unit) throws InterruptedException {
     return tryAcquire(1, timeout, unit);
