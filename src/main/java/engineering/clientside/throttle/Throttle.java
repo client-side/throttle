@@ -96,11 +96,16 @@ public interface Throttle {
    *
    * @param permitsPerSecond the rate of the returned {@code Throttle}, measured in how many permits
    *                         become available per second
+   * @param fair             {@code true} if acquisition should use a fair ordering policy
    * @return a new throttle instance
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
    */
+  static Throttle create(final double permitsPerSecond, final boolean fair) {
+    return new NanoThrottle.GoldFish(permitsPerSecond, 1.0, fair);
+  }
+
   static Throttle create(final double permitsPerSecond) {
-    return new NanoThrottle.GoldFish(permitsPerSecond, 1.0);
+    return create(permitsPerSecond, false);
   }
 
   /**
@@ -167,7 +172,7 @@ public interface Throttle {
    * @param permits the number of permits to acquire
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws InterruptedException unchecked internally if thread is interrupted
+   * @throws InterruptedException     unchecked internally if thread is interrupted
    */
   double acquire(final int permits) throws InterruptedException;
 
@@ -201,7 +206,7 @@ public interface Throttle {
    * @param unit    the time unit of the timeout argument
    * @return {@code true} if the permit was acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws InterruptedException unchecked internally if thread is interrupted
+   * @throws InterruptedException     unchecked internally if thread is interrupted
    */
   default boolean tryAcquire(final long timeout, final TimeUnit unit) throws InterruptedException {
     return tryAcquire(1, timeout, unit);

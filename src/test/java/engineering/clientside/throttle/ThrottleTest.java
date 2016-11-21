@@ -23,6 +23,8 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static engineering.clientside.throttle.NanoThrottle.ONE_SECOND_NANOS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -54,7 +56,7 @@ public class ThrottleTest {
 
   @Test
   public void testReserve() throws InterruptedException {
-    final NanoThrottle throttle = new NanoThrottle.GoldFish(5.0, 1.0);
+    final NanoThrottle throttle = new NanoThrottle.GoldFish(5.0, 1.0, false);
     long sleep = throttle.reserve(1);
     NANOSECONDS.sleep(sleep);
     assertEquals(0.0, sleep / ONE_SECOND_NANOS, 0.0);
@@ -356,5 +358,34 @@ public class ThrottleTest {
   public void testToString() {
     final Throttle throttle = Throttle.create(100.0);
     assertEquals("Throttle{rate=100.0}", throttle.toString());
+  }
+
+  @Test
+  public void testStream() {
+    final int qps = 1_024;
+    final Throttle throttle = Throttle.create(qps);
+    // warm-up
+    IntStream stream = IntStream.range(0, 128).parallel();
+    stream.forEach(index -> throttle.acquireUnchecked());
+
+    stream = IntStream.range(0, qps).parallel();
+    long start = System.nanoTime();
+    stream.forEach(index -> throttle.acquireUnchecked());
+    long duration = TimeUnit.MILLISECONDS
+        .convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+    assertTrue("Expected duration between 1,000 and 1,010ms. Observed " + duration,
+        duration >= 1000 && duration < 1010);
+
+    final Throttle fairThrottle = Throttle.create(qps, true);
+    // warm-up
+    IntStream.range(0, 128).parallel().forEach(index -> fairThrottle.acquireUnchecked());
+
+    stream = IntStream.range(0, qps).parallel();
+    start = System.nanoTime();
+    stream.forEach(index -> fairThrottle.tryAcquireUnchecked(100_000_000, TimeUnit.NANOSECONDS));
+    duration = TimeUnit.MILLISECONDS
+        .convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+    assertTrue("Expected duration between 1,000 and 1,050ms. Observed " + duration,
+        duration >= 1000 && duration < 1050);
   }
 }

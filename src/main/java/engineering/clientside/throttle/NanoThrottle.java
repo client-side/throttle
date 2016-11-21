@@ -15,6 +15,7 @@
 package engineering.clientside.throttle;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -28,18 +29,20 @@ abstract class NanoThrottle implements Throttle {
   static final double ONE_SECOND_NANOS = 1_000_000_000.0;
 
   private final long nanoStart;
-  volatile double storedPermits;
-  volatile double maxPermits;
-  volatile double stableIntervalNanos;
-  private volatile long nextFreeTicketNanos = 0L;
-  private final Object mutex = new Object();
+  double storedPermits;
+  double maxPermits;
+  double stableIntervalNanos;
+  private long nextFreeTicketNanos;
+  private final ReentrantLock lock;
 
-  private NanoThrottle(final double permitsPerSecond) {
+  private NanoThrottle(final double permitsPerSecond, final boolean fair) {
     if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
       throw new IllegalArgumentException("rate must be positive");
     }
     this.nanoStart = System.nanoTime();
+    this.nextFreeTicketNanos = 0L;
     doSetRate(permitsPerSecond);
+    this.lock = new ReentrantLock(fair);
   }
 
   /**
@@ -50,12 +53,15 @@ abstract class NanoThrottle implements Throttle {
     if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
       throw new IllegalArgumentException("rate must be positive");
     }
-    synchronized (mutex) {
+    lock.lock();
+    try {
       doSetRate(permitsPerSecond);
+    } finally {
+      lock.unlock();
     }
   }
 
-  private final void doSetRate(final double permitsPerSecond) {
+  private void doSetRate(final double permitsPerSecond) {
     reSync(System.nanoTime() - nanoStart);
     this.stableIntervalNanos = ONE_SECOND_NANOS / permitsPerSecond;
     doSetRate(permitsPerSecond, stableIntervalNanos);
@@ -68,8 +74,11 @@ abstract class NanoThrottle implements Throttle {
    */
   @Override
   public final double getRate() {
-    synchronized (mutex) {
+    lock.lock();
+    try {
       return ONE_SECOND_NANOS / stableIntervalNanos;
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -91,9 +100,16 @@ abstract class NanoThrottle implements Throttle {
    */
   final long reserve(final int permits) {
     checkPermits(permits);
-    synchronized (mutex) {
-      return reserveAndGetWaitLength(permits, System.nanoTime() - nanoStart);
+    long elapsedNanos;
+    long momentAvailable;
+    lock.lock();
+    try {
+      elapsedNanos = System.nanoTime() - nanoStart;
+      momentAvailable = reserveEarliestAvailable(permits, elapsedNanos);
+    } finally {
+      lock.unlock();
     }
+    return max(momentAvailable - elapsedNanos, 0);
   }
 
   /**
@@ -104,15 +120,19 @@ abstract class NanoThrottle implements Throttle {
       throws InterruptedException {
     final long timeoutNano = max(unit.toNanos(timeout), 0);
     checkPermits(permits);
-    long nanosToWait;
-    synchronized (mutex) {
-      final long elapsedNanos = System.nanoTime() - nanoStart;
+    long elapsedNanos;
+    long momentAvailable;
+    lock.lock();
+    try {
+      elapsedNanos = System.nanoTime() - nanoStart;
       if (!canAcquire(elapsedNanos, timeoutNano)) {
         return false;
       }
-      nanosToWait = reserveAndGetWaitLength(permits, elapsedNanos);
+      momentAvailable = reserveEarliestAvailable(permits, elapsedNanos);
+    } finally {
+      lock.unlock();
     }
-    NANOSECONDS.sleep(nanosToWait);
+    NANOSECONDS.sleep(momentAvailable - elapsedNanos);
     return true;
   }
 
@@ -122,28 +142,21 @@ abstract class NanoThrottle implements Throttle {
   @Override
   public final boolean tryAcquire(final int permits) {
     checkPermits(permits);
-    synchronized (mutex) {
+    lock.lock();
+    try {
       final long elapsedNanos = System.nanoTime() - nanoStart;
       if (canAcquire(elapsedNanos, 0)) {
         reserveEarliestAvailable(permits, elapsedNanos);
         return true;
       }
+    } finally {
+      lock.unlock();
     }
     return false;
   }
 
-  private final boolean canAcquire(final long elapsedNanos, final long timeoutNanos) {
+  private boolean canAcquire(final long elapsedNanos, final long timeoutNanos) {
     return nextFreeTicketNanos - timeoutNanos <= elapsedNanos;
-  }
-
-  /**
-   * Reserves next ticket and returns the wait time that the caller must wait for.
-   *
-   * @return the required wait time, never negative
-   */
-  private final long reserveAndGetWaitLength(final int permits, final long elapsedNanos) {
-    final long momentAvailable = reserveEarliestAvailable(permits, elapsedNanos);
-    return max(momentAvailable - elapsedNanos, 0);
   }
 
   /**
@@ -153,7 +166,7 @@ abstract class NanoThrottle implements Throttle {
    * @return the time that the permits may be used, or, if the permits may be used immediately, an
    * arbitrary past or present time
    */
-  private final long reserveEarliestAvailable(final int requiredPermits, final long elapsedNanos) {
+  private long reserveEarliestAvailable(final int requiredPermits, final long elapsedNanos) {
     reSync(elapsedNanos);
     final long returnValue = nextFreeTicketNanos;
     final double storedPermitsToSpend = min(requiredPermits, this.storedPermits);
@@ -201,7 +214,7 @@ abstract class NanoThrottle implements Throttle {
   /**
    * Updates {@code storedPermits} and {@code nextFreeTicketNanos} based on the current time.
    */
-  private final void reSync(final long elapsedNanos) {
+  private void reSync(final long elapsedNanos) {
     if (elapsedNanos > nextFreeTicketNanos) {
       final double newPermits = (elapsedNanos - nextFreeTicketNanos) / coolDownIntervalNanos();
       storedPermits = min(maxPermits, storedPermits + newPermits);
@@ -218,8 +231,8 @@ abstract class NanoThrottle implements Throttle {
 
     private final double maxBurstSeconds;
 
-    GoldFish(final double permitsPerSecond, final double maxBurstSeconds) {
-      super(permitsPerSecond);
+    GoldFish(final double permitsPerSecond, final double maxBurstSeconds, final boolean fair) {
+      super(permitsPerSecond, fair);
       this.maxBurstSeconds = maxBurstSeconds;
     }
 
