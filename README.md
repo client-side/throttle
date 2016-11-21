@@ -9,7 +9,7 @@ A Throttle instance distributes permits at a desired rate, blocking if necessary
 ###### Submit two tasks per second:
 
 ```java
-Throttle rateLimiter = Throttle.create(2.0); // 2 permits per second
+Throttle throttle = Throttle.create(2.0); // 2 permits per second
 // ...
 void submitTasks(List<Runnable> tasks, Executor executor) {
   for (Runnable task : tasks) {
@@ -33,7 +33,7 @@ void submitPacket(byte[] packet) {
 ### Changes From Guava Rate Limiter
 * Nanosecond instead of microsecond accuracy.
 * Uses a `ReentrantLock` instead of `synchronized` blocks to support optional fair acquisition ordering.
-* Factoring out an interface class, [Throttle](src/main/java/engineering/clientside/throttle/Throttle.java#L82), from the base abstract class.
+* Factoring out an interface class, [Throttle](src/main/java/engineering/clientside/throttle/Throttle.java#L83), from the base abstract class.
 * Remove the need for any non-core-Java classes outside of the original [RateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java) and [SmoothRateLimiter](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/SmoothRateLimiter.java) classes.
 * Remove the need for a [SleepingStopwatch](https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/RateLimiter.java#L395) or similar class instance.
 * Guava provides rate limiters with either _bursty_ or _warm-up_ behavior. Throttle provides only a single strict rate limiter implementation that will never exceed the desired rate limit over a one second period.
