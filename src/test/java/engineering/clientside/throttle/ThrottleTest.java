@@ -373,8 +373,8 @@ public class ThrottleTest {
     stream.forEach(index -> throttle.acquireUnchecked());
     long duration = TimeUnit.MILLISECONDS
         .convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-    assertTrue("Expected duration between 1,000 and 1,020ms. Observed " + duration,
-        duration >= 1000 && duration < 1020);
+    assertTrue("Expected duration between 1,000 and 1,050ms. Observed " + duration,
+        duration >= 1000 && duration < 1050);
 
     final Throttle fairThrottle = Throttle.create(qps, true);
     // warm-up
@@ -382,7 +382,7 @@ public class ThrottleTest {
 
     stream = IntStream.range(0, qps).parallel();
     start = System.nanoTime();
-    stream.forEach(index -> fairThrottle.tryAcquireUnchecked(100_000_000, TimeUnit.NANOSECONDS));
+    stream.forEach(index -> fairThrottle.tryAcquireUnchecked(200_000_000, TimeUnit.NANOSECONDS));
     duration = TimeUnit.MILLISECONDS
         .convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
     assertTrue("Expected duration between 1,000 and 1,050ms. Observed " + duration,
