@@ -101,7 +101,7 @@ public interface Throttle {
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
    */
   static Throttle create(final double permitsPerSecond, final boolean fair) {
-    return new NanoThrottle.GoldFish(permitsPerSecond, 1.0, fair);
+    return new NanoThrottle.GoldFish(permitsPerSecond, .1, fair);
   }
 
   static Throttle create(final double permitsPerSecond) {
