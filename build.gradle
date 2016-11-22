@@ -90,7 +90,7 @@ bintrayUpload.onlyIf { !project.version.endsWith('SNAPSHOT') }
 
 findbugs {
   toolVersion = "+"
-  reportsDir = file("$project.buildDir/findbugsReports")
+  reportsDir = file("${project.buildDir}/findbugsReports")
   effort = "max"
   reportLevel = "low"
   ignoreFailures = false
@@ -106,7 +106,7 @@ tasks.withType(FindBugs) {
 checkstyle {
   config = resources.text.fromFile("checkstyle/google-checks.xml")
   configProperties = [samedir: "${projectDir}/checkstyle"]
-  reportsDir = file("$project.buildDir/checkstyleReports")
+  reportsDir = file("${project.buildDir}/checkstyleReports")
   toolVersion = "+"
   ignoreFailures = false
 }
