@@ -16,16 +16,6 @@
 
 package engineering.clientside.throttle;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-
 import static engineering.clientside.throttle.NanoThrottle.ONE_SECOND_NANOS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -35,6 +25,15 @@ import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * The following tests were adapted directly from com.google.common.util.concurrent.RateLimiterTest.
@@ -52,6 +51,19 @@ public class ThrottleTest {
   @BeforeClass
   public static void warmup() {
     Throttle.create(100.0);
+  }
+
+  private static long measureTotalTimeMillis(final Throttle throttle, int permits)
+      throws InterruptedException {
+    final Random random = ThreadLocalRandom.current();
+    final long startTime = System.nanoTime();
+    while (permits > 0) {
+      final int nextPermitsToAcquire = Math.max(1, random.nextInt(permits));
+      permits -= nextPermitsToAcquire;
+      throttle.acquire(nextPermitsToAcquire);
+    }
+    throttle.acquire(1); // to repay for any pending debt
+    return NANOSECONDS.toMillis(System.nanoTime() - startTime);
   }
 
   @Test
@@ -339,19 +351,6 @@ public class ThrottleTest {
       durationMillis = measureTotalTimeMillis(throttle, oneHundredMillisWorthOfWork);
       assertEquals(100.0, durationMillis, 15.0);
     }
-  }
-
-  private static long measureTotalTimeMillis(final Throttle throttle, int permits)
-      throws InterruptedException {
-    final Random random = ThreadLocalRandom.current();
-    final long startTime = System.nanoTime();
-    while (permits > 0) {
-      final int nextPermitsToAcquire = Math.max(1, random.nextInt(permits));
-      permits -= nextPermitsToAcquire;
-      throttle.acquire(nextPermitsToAcquire);
-    }
-    throttle.acquire(1); // to repay for any pending debt
-    return NANOSECONDS.toMillis(System.nanoTime() - startTime);
   }
 
   @Test

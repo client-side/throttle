@@ -95,8 +95,8 @@ public interface Throttle {
    * limited at the stable rate of {@code permitsPerSecond}.
    *
    * @param permitsPerSecond the rate of the returned {@code Throttle}, measured in how many permits
-   *                         become available per second
-   * @param fair             {@code true} if acquisition should use a fair ordering policy
+   * become available per second
+   * @param fair {@code true} if acquisition should use a fair ordering policy
    * @return a new throttle instance
    * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
    */
@@ -107,6 +107,16 @@ public interface Throttle {
   static Throttle create(final double permitsPerSecond) {
     return create(permitsPerSecond, false);
   }
+
+  /**
+   * Returns the stable rate as permits per second with which this {@code Throttle}
+   * is configured with. The initial value of this is the same as the {@code permitsPerSecond}
+   * argument passed in the factory method that produced this {@code Throttle}, and it is only
+   * updated after invocations to {@linkplain #setRate}.
+   *
+   * @return the current stable rate as permits per second
+   */
+  double getRate();
 
   /**
    * Updates the stable rate of this {@code Throttle}, that is, the {@code permitsPerSecond}
@@ -129,16 +139,6 @@ public interface Throttle {
   void setRate(final double permitsPerSecond);
 
   /**
-   * Returns the stable rate as permits per second with which this {@code Throttle}
-   * is configured with. The initial value of this is the same as the {@code permitsPerSecond}
-   * argument passed in the factory method that produced this {@code Throttle}, and it is only
-   * updated after invocations to {@linkplain #setRate}.
-   *
-   * @return the current stable rate as permits per second
-   */
-  double getRate();
-
-  /**
    * Acquires a single permit from this {@code Throttle}, blocking until the request can be
    * granted. Tells the amount of time slept, if any.
    *
@@ -159,7 +159,7 @@ public interface Throttle {
    *
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws CompletionException if this Thread is interrupted.  The cause is set to the caught
-   *                             InterruptedException and this Thread is re-interrupted
+   * InterruptedException and this Thread is re-interrupted
    */
   default double acquireUnchecked() {
     return acquireUnchecked(1);
@@ -172,7 +172,7 @@ public interface Throttle {
    * @param permits the number of permits to acquire
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws InterruptedException     unchecked internally if thread is interrupted
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   double acquire(final int permits) throws InterruptedException;
 
@@ -183,8 +183,8 @@ public interface Throttle {
    * @param permits the number of permits to acquire
    * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws CompletionException      if this Thread is interrupted.  The cause is set to the caught
-   *                                  InterruptedException and this Thread is re-interrupted
+   * @throws CompletionException if this Thread is interrupted.  The cause is set to the caught
+   * InterruptedException and this Thread is re-interrupted
    */
   default double acquireUnchecked(final int permits) {
     try {
@@ -203,10 +203,10 @@ public interface Throttle {
    * <p>This method is equivalent to {@code tryAcquire(1, timeout, unit)}.
    *
    * @param timeout the maximum time to wait for the permit. Negative values are treated as zero.
-   * @param unit    the time unit of the timeout argument
+   * @param unit the time unit of the timeout argument
    * @return {@code true} if the permit was acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws InterruptedException     unchecked internally if thread is interrupted
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   default boolean tryAcquire(final long timeout, final TimeUnit unit) throws InterruptedException {
     return tryAcquire(1, timeout, unit);
@@ -247,7 +247,7 @@ public interface Throttle {
    *
    * @param permits the number of permits to acquire
    * @param timeout the maximum time to wait for the permits. Negative values are treated as zero.
-   * @param unit    the time unit of the timeout argument
+   * @param unit the time unit of the timeout argument
    * @return {@code true} if the permits were acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
    */
@@ -261,11 +261,11 @@ public interface Throttle {
    *
    * @param permits the number of permits to acquire
    * @param timeout the maximum time to wait for the permits. Negative values are treated as zero.
-   * @param unit    the time unit of the timeout argument
+   * @param unit the time unit of the timeout argument
    * @return {@code true} if the permits were acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws CompletionException      if this Thread is interrupted.  The cause is set to the caught
-   *                                  InterruptedException and this Thread is re-interrupted
+   * @throws CompletionException if this Thread is interrupted.  The cause is set to the caught
+   * InterruptedException and this Thread is re-interrupted
    */
   default boolean tryAcquireUnchecked(final int permits, final long timeout, final TimeUnit unit) {
     try {

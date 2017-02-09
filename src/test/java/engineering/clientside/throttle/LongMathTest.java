@@ -16,14 +16,13 @@
 
 package engineering.clientside.throttle;
 
-import org.junit.Test;
+import static java.math.BigInteger.valueOf;
+import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.math.BigInteger.valueOf;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 /**
  * The following tests were adapted directly from com.google.common.math.LongMathTest
@@ -34,11 +33,13 @@ import static org.junit.Assert.fail;
 public class LongMathTest {
 
   private static final List<Long> ALL_LONG_CANDIDATES = new ArrayList<>();
+  private static final BigInteger MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
+  private static final BigInteger MIN_LONG = BigInteger.valueOf(Long.MIN_VALUE);
 
   static {
     ALL_LONG_CANDIDATES.add((long) (Integer.MAX_VALUE - 1));
     ALL_LONG_CANDIDATES.add((long) Integer.MAX_VALUE);
-    for (long i = 1;i <= 40;i++) {
+    for (long i = 1; i <= 40; i++) {
       ALL_LONG_CANDIDATES.add(i);
     }
     ALL_LONG_CANDIDATES.add(Integer.MAX_VALUE + 1L);
@@ -68,6 +69,24 @@ public class LongMathTest {
     ALL_LONG_CANDIDATES.add(0L);
   }
 
+  private static void assertOperationEquals(final long val1, final long val2, final long expected,
+      final long actual) {
+    if (expected != actual) {
+      fail("Expected for " + val1 + " s+ " + val2 + " = " + expected
+          + ", but got " + actual);
+    }
+  }
+
+  private static long saturatedCast(BigInteger big) {
+    if (big.compareTo(MAX_LONG) > 0) {
+      return Long.MAX_VALUE;
+    }
+    if (big.compareTo(MIN_LONG) < 0) {
+      return Long.MIN_VALUE;
+    }
+    return big.longValue();
+  }
+
   @Test
   public void testSaturatedAdd() {
     for (final long a : ALL_LONG_CANDIDATES) {
@@ -78,26 +97,5 @@ public class LongMathTest {
             NanoThrottle.saturatedAdd(a, b));
       }
     }
-  }
-
-  private static void assertOperationEquals(final long val1, final long val2, final long expected,
-      final long actual) {
-    if (expected != actual) {
-      fail("Expected for " + val1 + " s+ " + val2 + " = " + expected
-          + ", but got " + actual);
-    }
-  }
-
-  private static final BigInteger MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
-  private static final BigInteger MIN_LONG = BigInteger.valueOf(Long.MIN_VALUE);
-
-  private static long saturatedCast(BigInteger big) {
-    if (big.compareTo(MAX_LONG) > 0) {
-      return Long.MAX_VALUE;
-    }
-    if (big.compareTo(MIN_LONG) < 0) {
-      return Long.MIN_VALUE;
-    }
-    return big.longValue();
   }
 }

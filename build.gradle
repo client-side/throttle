@@ -1,123 +1,32 @@
-plugins {
-  id 'java'
-  id 'pl.allegro.tech.build.axion-release' version '1.4.1'
-  id 'maven-publish'
-  id 'com.jfrog.bintray' version '1.7.3'
-  id 'findbugs'
-  id 'checkstyle'
-  id 'jacoco'
-}
-
-scmVersion {
-  tag {
-    prefix = project.name
-  }
-
-  repository {
-    if (project.hasProperty("AXION_RELEASE_GITHUB_TOKEN")) {
-      customUsername = "$AXION_RELEASE_GITHUB_TOKEN"
+buildscript {
+    apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/plugins.gradle'
+    dependencies {
+        classpath "$axion"
+        classpath "$bintray"
     }
-    pushTagsOnly = true
-  }
 }
 
-project.group = 'engineering.clientside'
-project.version = scmVersion.version
-
-sourceCompatibility = JavaVersion.VERSION_1_8
-
-repositories {
-  maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
-  jcenter()
-}
-
-dependencies {
-  testCompile 'junit:junit:+'
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-  from sourceSets.main.allSource
-  classifier = 'sources'
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  from javadoc.destinationDir
-  classifier 'javadoc'
-}
-
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      from components.java
-
-      artifact sourcesJar
-      artifact javadocJar
-    }
-  }
-}
-
-artifacts {
-  archives sourcesJar
-  archives javadocJar
-}
-
-bintray {
-  user = System.getenv('BINTRAY_USER')
-  key = System.getenv('BINTRAY_API_KEY')
-  publications = ['mavenJava']
-  pkg {
-    userOrg = 'client-side'
-    repo = 'clients'
-    name = project.name
+ext {
     desc = 'Java Concurrent Rate Limiter'
-    websiteUrl = 'https://github.com/client-side/' + project.name
-    vcsUrl = 'https://github.com/client-side/' + project.name
-    issueTrackerUrl = 'https://github.com/client-side/' + project.name + '/issues'
-    licenses = ["Apache-2.0"]
-    publish = true
-    version {
-      name = project.version
-      vcsTag = scmVersion.tag.prefix + '-' + project.version
-      gpg {
-        sign = true
-        passphrase = System.getenv('BINTRAY_GPG_PASSPHRASE')
-      }
-    }
-  }
 }
-
-bintrayUpload.onlyIf { !project.version.endsWith('SNAPSHOT') }
+apply from: 'https://raw.githubusercontent.com/client-side/gradle-conf/master/client-side.gradle'
+apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/travisci.gradle'
+apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/java.gradle'
+apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/axion.gradle'
+apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/bintray-maven.gradle'
+apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/checks.gradle'
+apply plugin: 'findbugs'
 
 findbugs {
-  toolVersion = "+"
-  reportsDir = file("${project.buildDir}/findbugsReports")
-  effort = "max"
-  reportLevel = "low"
-  ignoreFailures = false
+    toolVersion = "+"
+    effort = "max"
+    reportLevel = "low"
+    ignoreFailures = false
 }
 
 tasks.withType(FindBugs) {
-  reports {
-    xml.enabled = false
-    html.enabled = true
-  }
-}
-
-checkstyle {
-  config = resources.text.fromFile("checkstyle/google-checks.xml")
-  configProperties = [samedir: "${projectDir}/checkstyle"]
-  reportsDir = file("${project.buildDir}/checkstyleReports")
-  toolVersion = "+"
-  ignoreFailures = false
-}
-
-jacoco {
-  toolVersion = "+"
-}
-
-jacocoTestReport {
-  reports {
-    xml.enabled = true
-    html.enabled = true
-  }
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
 }

@@ -14,12 +14,12 @@
 
 package engineering.clientside.throttle;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * {@inheritDoc}
@@ -29,11 +29,11 @@ abstract class NanoThrottle implements Throttle {
   static final double ONE_SECOND_NANOS = 1_000_000_000.0;
 
   private final long nanoStart;
+  private final ReentrantLock lock;
   double storedPermits;
   double maxPermits;
   double stableIntervalNanos;
   private long nextFreeTicketNanos;
-  private final ReentrantLock lock;
 
   private NanoThrottle(final double permitsPerSecond, final boolean fair) {
     if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
@@ -45,20 +45,23 @@ abstract class NanoThrottle implements Throttle {
     this.lock = new ReentrantLock(fair);
   }
 
+  private static void checkPermits(final int permits) {
+    if (permits <= 0) {
+      throw new IllegalArgumentException(String
+          .format("Requested permits (%s) must be positive", permits));
+    }
+  }
+
   /**
-   * {@inheritDoc}
+   * Returns the sum of {@code val1} and {@code val2} unless it would overflow or underflow in which
+   * case {@code Long.MAX_VALUE} or {@code Long.MIN_VALUE} is returned, respectively.
    */
-  @Override
-  public final void setRate(final double permitsPerSecond) {
-    if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
-      throw new IllegalArgumentException("rate must be positive");
+  static long saturatedAdd(final long val1, final long val2) {
+    final long naiveSum = val1 + val2;
+    if ((val1 ^ val2) < 0 || (val1 ^ naiveSum) >= 0) {
+      return naiveSum;
     }
-    lock.lock();
-    try {
-      doSetRate(permitsPerSecond);
-    } finally {
-      lock.unlock();
-    }
+    return Long.MAX_VALUE + ((naiveSum >>> (Long.SIZE - 1)) ^ 1);
   }
 
   private void doSetRate(final double permitsPerSecond) {
@@ -77,6 +80,22 @@ abstract class NanoThrottle implements Throttle {
     lock.lock();
     try {
       return ONE_SECOND_NANOS / stableIntervalNanos;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public final void setRate(final double permitsPerSecond) {
+    if (permitsPerSecond <= 0.0 || !Double.isFinite(permitsPerSecond)) {
+      throw new IllegalArgumentException("rate must be positive");
+    }
+    lock.lock();
+    try {
+      doSetRate(permitsPerSecond);
     } finally {
       lock.unlock();
     }
@@ -176,25 +195,6 @@ abstract class NanoThrottle implements Throttle {
     this.nextFreeTicketNanos = saturatedAdd(nextFreeTicketNanos, waitNanos);
     this.storedPermits -= storedPermitsToSpend;
     return returnValue;
-  }
-
-  private static void checkPermits(final int permits) {
-    if (permits <= 0) {
-      throw new IllegalArgumentException(String
-          .format("Requested permits (%s) must be positive", permits));
-    }
-  }
-
-  /**
-   * Returns the sum of {@code val1} and {@code val2} unless it would overflow or underflow in which
-   * case {@code Long.MAX_VALUE} or {@code Long.MIN_VALUE} is returned, respectively.
-   */
-  static long saturatedAdd(final long val1, final long val2) {
-    final long naiveSum = val1 + val2;
-    if ((val1 ^ val2) < 0 || (val1 ^ naiveSum) >= 0) {
-      return naiveSum;
-    }
-    return Long.MAX_VALUE + ((naiveSum >>> (Long.SIZE - 1)) ^ 1);
   }
 
   /**
