@@ -67,15 +67,15 @@ public class ThrottleTest {
   }
 
   @Test
-  public void testReserve() throws InterruptedException {
+  public void testAcquireDelayDuration() throws InterruptedException {
     final NanoThrottle throttle = new NanoThrottle.GoldFish(5.0, 1.0, false);
-    long sleep = throttle.reserve(1);
+    long sleep = throttle.acquireDelayDuration(1);
     NANOSECONDS.sleep(sleep);
     assertEquals(0.0, sleep / ONE_SECOND_NANOS, 0.0);
-    sleep = throttle.reserve(1);
+    sleep = throttle.acquireDelayDuration(1);
     NANOSECONDS.sleep(sleep);
     assertEquals(0.20, sleep / ONE_SECOND_NANOS, FIRST_DELTA);
-    sleep = throttle.reserve(1);
+    sleep = throttle.acquireDelayDuration(1);
     NANOSECONDS.sleep(sleep);
     assertEquals(0.20, sleep / ONE_SECOND_NANOS, SECOND_DELTA);
   }

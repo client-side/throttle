@@ -177,6 +177,16 @@ public interface Throttle {
   double acquire(final int permits) throws InterruptedException;
 
   /**
+   * Acquires the given number of permits from this {@code Throttle}, returning the duration in
+   * nanoseconds to wait to match the number of permits acquired.
+   *
+   * @param permits the number of permits to acquire
+   * @return the duration in nanoseconds to wait to match the number of permits acquired
+   * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   */
+  long acquireDelayDuration(final int permits);
+
+  /**
    * Acquires the given number of permits from this {@code Throttle}, blocking until the request
    * can be granted. Tells the amount of time slept, if any.
    *
@@ -253,6 +263,21 @@ public interface Throttle {
    */
   boolean tryAcquire(final int permits, final long timeout, final TimeUnit unit)
       throws InterruptedException;
+
+  /**
+   * Acquires the given number of permits from this {@code Throttle} if it can be obtained without
+   * exceeding the specified {@code timeout} and returns the duration in nanoseconds to wait to
+   * match the acquired permits, or returns {@code -1} if the permits would not have been granted
+   * before the timeout expired.
+   *
+   * @param permits the number of permits to acquire
+   * @param timeout the maximum time to wait for the permits. Negative values are treated as zero.
+   * @param unit the time unit of the timeout argument
+   * @return The duration in nanosecond to wait to match the acquired permits, or -1 if no permits
+   * were acquired because the timeout would expire.
+   * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   */
+  long tryAcquireDelayDuration(final int permits, final long timeout, final TimeUnit unit);
 
   /**
    * Acquires the given number of permits from this {@code Throttle} if it can be obtained

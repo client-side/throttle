@@ -106,18 +106,16 @@ abstract class NanoThrottle implements Throttle {
    */
   @Override
   public final double acquire(final int permits) throws InterruptedException {
-    final long nanosToWait = reserve(permits);
-    NANOSECONDS.sleep(nanosToWait);
-    return nanosToWait / ONE_SECOND_NANOS;
+    final long waitDuration = acquireDelayDuration(permits);
+    NANOSECONDS.sleep(waitDuration);
+    return waitDuration / ONE_SECOND_NANOS;
   }
 
   /**
-   * Reserves the given number of permits from this {@code NanoThrottle} for future use, returning
-   * the number of nanoseconds until the reservation can be consumed.
-   *
-   * @return time in nanoseconds to wait until the resource can be acquired, never negative
+   * {@inheritDoc}
    */
-  final long reserve(final int permits) {
+  @Override
+  public final long acquireDelayDuration(final int permits) {
     checkPermits(permits);
     long elapsedNanos;
     long momentAvailable;
@@ -137,22 +135,38 @@ abstract class NanoThrottle implements Throttle {
   @Override
   public final boolean tryAcquire(final int permits, final long timeout, final TimeUnit unit)
       throws InterruptedException {
-    final long timeoutNano = max(unit.toNanos(timeout), 0);
+    final long waitDuration = tryAcquireDelayDuration(permits, timeout, unit);
+    if (waitDuration < 0) {
+      return false;
+    }
+    NANOSECONDS.sleep(waitDuration);
+    return true;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public final long tryAcquireDelayDuration(final int permits, final long timeout,
+      final TimeUnit unit) {
+    if (timeout <= 0) {
+      return tryAcquire(permits) ? 0 : -1;
+    }
+    final long waitDuration = unit.toNanos(timeout);
     checkPermits(permits);
-    long elapsedNanos;
+    long durationElapsed;
     long momentAvailable;
     lock.lock();
     try {
-      elapsedNanos = System.nanoTime() - nanoStart;
-      if (!canAcquire(elapsedNanos, timeoutNano)) {
-        return false;
+      durationElapsed = System.nanoTime() - nanoStart;
+      if (!canAcquire(durationElapsed, waitDuration)) {
+        return -1;
       }
-      momentAvailable = reserveEarliestAvailable(permits, elapsedNanos);
+      momentAvailable = reserveEarliestAvailable(permits, durationElapsed);
     } finally {
       lock.unlock();
     }
-    NANOSECONDS.sleep(momentAvailable - elapsedNanos);
-    return true;
+    return momentAvailable - durationElapsed;
   }
 
   /**
