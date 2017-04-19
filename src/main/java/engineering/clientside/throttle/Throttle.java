@@ -260,6 +260,7 @@ public interface Throttle {
    * @param unit the time unit of the timeout argument
    * @return {@code true} if the permits were acquired, {@code false} otherwise
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
+   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   boolean tryAcquire(final int permits, final long timeout, final TimeUnit unit)
       throws InterruptedException;
@@ -276,7 +277,6 @@ public interface Throttle {
    * @return The duration in nanosecond to wait to match the acquired permits, or -1 if no permits
    * were acquired because the timeout would expire.
    * @throws IllegalArgumentException if the requested number of permits is negative or zero
-   * @throws InterruptedException unchecked internally if thread is interrupted
    */
   long tryAcquireDelayDuration(final int permits, final long timeout, final TimeUnit unit);
 
