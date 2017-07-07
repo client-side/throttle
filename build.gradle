@@ -7,13 +7,13 @@ buildscript {
 }
 
 ext {
-    desc = 'Java Concurrent Rate Limiter'
+  desc = 'Java Concurrent Rate Limiter'
 }
 apply from: 'https://raw.githubusercontent.com/client-side/gradle-conf/master/client-side.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/travisci.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/java.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/axion.gradle'
-apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/bintray-maven.gradle'
+//apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/bintray-maven.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/checks.gradle'
 apply plugin: 'findbugs'
 
@@ -30,3 +30,82 @@ tasks.withType(FindBugs) {
         html.enabled = true
     }
 }
+
+
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  from sourceSets.main.allSource
+  classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  from javadoc.destinationDir
+  classifier 'javadoc'
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+      artifact sourcesJar
+      artifact javadocJar
+      groupId project.group
+      artifactId project.name
+      version project.version
+      pom.withXml {
+        def root = asNode()
+        root.appendNode('description', "$desc")
+        root.appendNode('name', project.name)
+        root.appendNode('url', project.vcsUrl)
+        root.children().last() + pomConfig
+      }
+    }
+  }
+}
+
+artifacts {
+  archives sourcesJar
+  archives javadocJar
+}
+
+def pomConfig = {
+  licenses {
+    license {
+      name "Apache License 2.0"
+      url project.vcsUrl + '/blob/master/LICENSE'
+      distribution "repo"
+    }
+  }
+  scm {
+    url project.vcsUrl
+  }
+}
+
+bintray {
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_API_KEY')
+  publications = ['mavenJava']
+  pkg {
+    userOrg = project.bintrayOrg
+    repo = project.bintrayRepo
+    name = project.name
+    desc = project.desc
+    vcsUrl = project.vcsUrl
+    websiteUrl = project.vcsUrl
+    issueTrackerUrl = project.vcsUrl + '/issues'
+    licenses = ["Apache-2.0"]
+    publish = true
+    version {
+      name = project.version
+      vcsTag = project.name + '-' + project.version
+      gpg {
+        sign = true
+        passphrase = System.getenv('BINTRAY_GPG_PASSPHRASE')
+      }
+    }
+  }
+}
+
+bintrayUpload.onlyIf { !project.version.endsWith('SNAPSHOT') }
