@@ -32,6 +32,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -367,7 +368,7 @@ public class ThrottleTest {
     IntStream stream = IntStream.range(0, 128).parallel();
     stream.forEach(index -> throttle.acquireUnchecked());
 
-    stream = IntStream.range(0, qps).parallel();
+    stream = IntStream.range(0, qps + 1).parallel();
     long start = System.nanoTime();
     stream.forEach(index -> throttle.acquireUnchecked());
     long duration = TimeUnit.MILLISECONDS
@@ -379,7 +380,7 @@ public class ThrottleTest {
     // warm-up
     IntStream.range(0, 128).parallel().forEach(index -> fairThrottle.acquireUnchecked());
 
-    stream = IntStream.range(0, qps).parallel();
+    stream = IntStream.range(0, qps + 1).parallel();
     start = System.nanoTime();
     stream.forEach(index -> fairThrottle.tryAcquireUnchecked(200_000_000, TimeUnit.NANOSECONDS));
     duration = TimeUnit.MILLISECONDS
