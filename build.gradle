@@ -1,32 +1,27 @@
 buildscript {
-    apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/plugins.gradle'
-    dependencies {
-        classpath "$axion"
-        classpath "$bintray"
-    }
+  apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/plugins.gradle'
+  dependencies {
+    classpath "$axion"
+    classpath "$bintray"
+  }
 }
 
 ext {
   desc = 'Java Concurrent Rate Limiter'
 }
 apply from: 'https://raw.githubusercontent.com/client-side/gradle-conf/master/client-side.gradle'
-apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/travisci.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/java.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/axion.gradle'
 apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/bintray-maven.gradle'
-apply from: 'https://raw.githubusercontent.com/comodal/gradle-conf/master/java/checks.gradle'
-apply plugin: 'findbugs'
+apply plugin: 'jacoco'
 
-findbugs {
-    toolVersion = "+"
-    effort = "max"
-    reportLevel = "low"
-    ignoreFailures = false
+jacoco {
+  toolVersion = "+"
 }
 
-tasks.withType(FindBugs) {
-    reports {
-        xml.enabled = false
-        html.enabled = true
-    }
+jacocoTestReport {
+  reports {
+    xml.enabled = true
+    html.enabled = true
+  }
 }
