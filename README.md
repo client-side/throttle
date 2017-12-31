@@ -6,6 +6,10 @@
 
 A Throttle instance distributes permits at a desired rate, blocking if necessary until a permit is available.
 
+### Java Version Support
+
+Version `0.2.6` is the latest version to support Java 8.  Future versions will support the latest Java version that is out at the time of release.
+
 ###### Submit two tasks per second:
 
 ```java
